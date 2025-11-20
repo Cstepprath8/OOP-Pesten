@@ -67,6 +67,12 @@ class Deck{
     $bovensteKaart = array_shift($this->kaarten); 
     return $bovensteKaart;
 }
+
+    public function Schudden(){
+        shuffle($this->kaarten);
+        shuffle($this->kaarten);
+    }
+
 }
 
 //Class Hand
