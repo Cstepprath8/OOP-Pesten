@@ -351,6 +351,43 @@ class Gameleader
     {
         return $this->beurt;
     }
+
+    //Computer code:
+// public function computerZet() {
+//     if ($this->winner !== null) return;
+
+//     // Computers: p1, p2, p3
+//     while ($this->beurt != 0) { 
+//         $hand = $this->Spelers[$this->beurt]->kaarten;
+
+//         $bovenste = end($this->Aflegstapel->kaarten);
+//         $gespeeld = false;
+
+//         // Kijk of er een speelbare kaart is
+//         foreach ($hand as $key => $kaart) {
+//             if ($kaart->GetWaarde() == $bovenste->GetWaarde() || $kaart->GetTeken() == $bovenste->GetTeken() || $kaart->GetWaarde() == 'J') {
+//                 $this->speelKaart($key);
+//                 $gespeeld = true;
+//                 break;
+//             }
+//         }
+
+//         // Als geen kaart speelbaar, pakken
+//         if (!$gespeeld) {
+//             $this->Klik("pakken");
+//         }
+//     }
+// }
+
+private function kanSpelen($kaart) {
+    $bovenste = end($this->Aflegstapel->kaarten);
+    return (
+        $kaart->GetWaarde() == $bovenste->GetWaarde() ||
+        $kaart->GetTeken() == $bovenste->GetTeken() ||
+        $kaart->GetWaarde() == 'J'
+    );
+}
+
 }
 
 

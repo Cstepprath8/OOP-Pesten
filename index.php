@@ -10,7 +10,14 @@ if (isset($_GET['reset'])) {
     header("Location: index.php");
     exit;
 }
-//Include ... Bestandsnaam
+
+// $tegenComputer = false;
+// if (isset($_GET['playvscomputer'])) {
+//     $tegenComputer = true;
+//     $_SESSION['tegenComputer'] = true;
+// } elseif (isset($_SESSION['tegenComputer'])) {
+//     $tegenComputer = $_SESSION['tegenComputer'];
+// }
 
 
 $aantalSpelers = 4;
@@ -25,6 +32,11 @@ if (isset($_SESSION['Game'])) {
 // Kaart klikken
 if (isset($_GET['Kaart'])) {
     $Game->Klik($_GET['Kaart']);
+
+    // Laat computer spelen als tegenComputer aan staat
+    // if ($tegenComputer) {
+    //     $Game->computerZet();
+    // }
 }
 
 $_SESSION['Game'] = $Game;
@@ -202,6 +214,8 @@ $beurt = $Game->GetBeurt();
 
 
     <a href="index.php?reset=1" class="btn-clean">Reset Game</a>
+    <!-- <a href="index.php?playvscomputer=1" class="btn-clean">Speel tegen de Computer</a> -->
+
 
 </body>
 
