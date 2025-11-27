@@ -1,58 +1,208 @@
 <?php
-//Colin Stepprath
+// Colin Stepprath
 include 'Kaart.php';
 
-$Deck = new Deck();
-$speler1 = new Hand(0);
-$speler2 = new Hand(1);
-$aantalKaarten = 7;
+session_start();
 
-    for($I = 0; $I < $aantalKaarten; $I++){
-        $kaart = $Deck->Rapen();
-        $speler1->ToevoegenAanHand($kaart);
-        $kaart = $Deck-> Rapen();
-        $speler2->ToevoegenAanHand($kaart);
-    }
-
-    $Game = new Gameleader(2); 
-    $D = count($Game->Deck->kaarten);if($D>21){$D=21;} 
-    $A = count($Game->Aflegstapel->kaarten);if($A>21){$A=21;} 
-    // $PK1 = count($Game->Spelers[0]->kaarten); 
-    // $PK2 = count($Game->Spelers[1]->kaarten);
-
-    if(isset($_GET['reset'])){session_destroy();header("location:Index.php");}
+// Reset game 
+if (isset($_GET['reset'])) {
+    session_destroy();
+    header("Location: index.php");
+    exit;
+}
+//Include ... Bestandsnaam
 
 
-    //Session Start Begin
-    session_start(); 
-    $aantalSpelers = 4; 
-    if(isset($_SESSION['Game'])){$Game = $_SESSION['Game'];}else{
-    $Game = new Gameleader($aantalSpelers); if(isset($_GET['Kaart'])){$Game->Klik($_GET['Kaart']);}
+$aantalSpelers = 4;
 
-    }
-    $_SESSION['Game'] = $Game;
+// Laad of start nieuw spel
+if (isset($_SESSION['Game'])) {
+    $Game = $_SESSION['Game'];
+} else {
+    $Game = new Gameleader($aantalSpelers);
+}
+
+// Kaart klikken
+if (isset($_GET['Kaart'])) {
+    $Game->Klik($_GET['Kaart']);
+}
+
+$_SESSION['Game'] = $Game;
+
+// Aantal kaarten
+$D = count($Game->Deck->kaarten);
+$A = count($Game->Aflegstapel->kaarten);
+
+// Huidige speler
+$beurt = $Game->GetBeurt();
 ?>
 <html>
 
 <head>
-    <title> Kaartenspel </title>
-    <style type="text/css"> 
-    kaart img{height:154px;}hand{width:300px;height:200px;display:block;position:absolute;} hand kaart{display:block;position:inherit;bottom:0px;}hand kaart:hover{top:0px;} deck,aflegstapel{width:125px;left:250px;height:175px;float:left;display:block;} deck kaart{left:<?php echo $D;?>px;bottom:<?php echo $D;?>px;position:absolute;} tafel{width: 250px;left:250px;top: 250px;position: absolute;} <?php for($d=$D;$d>0;$d--){?>deck kaart:nth-child(<?php echo $d;?>) {left:<?php echo $d;?>px;bottom:<?php echo $d;?>px;}<?php }?> .P0{left:50px;bottom:20px;} .P1{transform:rotate(180deg);left:450px;top:20px;} <?php for($p1=0;$p1<$PK1;$p1++){?> .P0 kaart:nth-child(<?php echo $p1;?>) {left:calc(<?php echo $p1;?> * 100px);}<?php }?> <?php for($p2=0;$p2<$PK2;$p2++){?> .P1 kaart:nth-child(<?php echo $p2;?>) {left:calc(<?php echo $p2;?> * 100px);}<?php }?> 
-    <?php for($a=$A;$a>0;$a--){?>aflegstapel kaart:nth-child(<?php echo $a;?>) {left:<?php echo $a+125;?>px;bottom:<?php echo $a;?>px;}<?php }?> aflegstapel kaart{left:<?php echo $A;?>px;bottom:<?php echo $A;?>px;position:absolute;}
-   </style>
-    </head>
+    <title>Kaartenspel</title>
+    <style type="text/css">
+        body {
+            /* background-color: green;  */
+            background-image: url('Foto/Blackjack tafel OOP_Pesten.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+
+        }
+
+        /* Basis styling */
+        kaart img {
+            height: 154px;
+        }
+
+        hand {
+            width: 300px;
+            height: 200px;
+            display: block;
+            position: absolute;
+        }
+
+        hand kaart {
+            position: absolute;
+            bottom: 0px;
+            transition: bottom 0.2s ease;
+        }
+
+        hand kaart:hover {
+            bottom: 20px;
+        }
+
+
+        /* Container voor deck en aflegstapel */
+        .stapels {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 50px;
+        }
+
+        /* Deck en Aflegstapel basis */
+        deck,
+        aflegstapel {
+            width: 125px;
+            height: 175px;
+            position: relative;
+        }
+
+        /* Button Reset */
+        .btn-clean {
+            padding: 8px 18px;
+            background: #1a1a1a;
+            color: #f0f0f0;
+            border: 1px solid #444;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s ease-in-out;
+            font-family: Arial, sans-serif;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* Button Reset Hover */
+        .btn-clean:hover {
+            background: #2c2c2c;
+            border-color: #c3b8b8ff;
+        }
+
+        .btn-clean:active {
+            background: #000;
+            border-color: #888;
+            transform: scale(0.97);
+        }
+
+
+        /* Deck kaarten */
+        <?php
+        $maxOffset = 20;
+        for ($d = 0; $d < $D; $d++) {
+            $offset = min($d * 2, $maxOffset);
+            echo "deck kaart:nth-child(" . ($d + 1) . ") { left: {$offset}px; bottom: {$offset}px; position: absolute; }\n";
+        }
+        for ($a = 0; $a < $A; $a++) {
+            $offset = min($a * 2, $maxOffset);
+            echo "aflegstapel kaart:nth-child(" . ($a + 1) . ") { left: {$offset}px; bottom: {$offset}px; position: absolute; }\n";
+        }
+        ?>hand {
+            display: block;
+            position: absolute;
+            width: auto;
+            height: auto;
+        }
+
+        /* Spelersposities */
+        hand.p0 {
+            left: 42%;
+            bottom: 10px;
+            transform: translateX(-50%) rotate(0deg);
+        }
+
+        hand.p1 {
+            left: 150px;
+            top: 250px;
+            transform: rotate(90deg);
+        }
+
+        hand.p2 {
+            left: 58%;
+            top: 20px;
+            transform: rotate(180deg);
+        }
+
+        hand.p3 {
+            right: 150px;
+            top: 550px;
+            transform: rotate(-90deg);
+        }
+
+        /* Rotatie per speler */
+        <?php
+        for ($s = 0; $s < $aantalSpelers; $s++) {
+            $kaarten = count($Game->Spelers[$s]->kaarten);
+            if ($kaarten <= 0) continue;
+            $graden = ($kaarten > 15) ? 150 : 80;
+            for ($k = 1; $k <= $kaarten; $k++) {
+                $rot = (($graden / $kaarten) * $k) - ($graden / 2);
+                $left = ($k - 1) * 25;
+                echo ".p{$s} kaart:nth-child({$k}) { transform: rotate({$rot}deg); left: {$left}px; }\n";
+            }
+        }
+        ?>
+    </style>
+</head>
 
 <body>
-    <h1>Jouw deck:</h1>
-    <?php 
-    $speler1->ShowHand();
-    echo "<tafel>";
-    $Deck->ShowDeck();
-    echo "</tafel>";
-    $speler2->ShowHand();
-    ?>
 
-    <a href="index.php?reset=">Reset Game</a>
+
+    <?php if ($Game->winner !== null): ?>
+        <h1 style="color:white;">Speler <?php echo $Game->winner; ?> heeft gewonnen!</h1>
+        <a href="index.php?reset=1" class="btn-clean">Nieuwe ronde starten</a>
+    <?php else: ?>
+        <div class="stapels">
+            <?php
+            $Game->Deck->ShowDeck();
+            $Game->Aflegstapel->ShowAflegstapel();
+            ?>
+        </div>
+
+        <?php
+        for ($i = 0; $i < $aantalSpelers; $i++) {
+            $Game->Spelers[$i]->ShowHand($beurt);
+        }
+        ?>
+    <?php endif; ?>
+
+
+
+    <a href="index.php?reset=1" class="btn-clean">Reset Game</a>
+
 </body>
 
 </html>

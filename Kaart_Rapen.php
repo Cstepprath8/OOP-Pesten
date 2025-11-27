@@ -1,4 +1,0 @@
-<?php
-//Colin Stepprath
-
-//Rapen

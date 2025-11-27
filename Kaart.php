@@ -48,6 +48,7 @@ class Deck
         $this->waardes = array('2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A');
 
         $this->MaakNieuwDeck();
+        $this->Schudden();
     }
 
 
@@ -65,7 +66,7 @@ class Deck
     //shows the deck
     public function ShowDeck()
     {
-        echo "<deck onclick='window.location.href=`index.php?Kaart=pakken`;'>";
+        echo '<deck onclick="window.location.href=\'index.php?Kaart=pakken\'">';
         foreach ($this->kaarten as $kaart) {
             echo "<kaart>";
             $kaart->ShowKaart();
@@ -103,20 +104,22 @@ class Hand
         array_push($this->kaarten, $kaart);
     }
 
-    public function ShowHand($id = null)
+    public function ShowHand($huidigeSpeler = null)
     {
         echo "<hand class='p" . $this->spelerNr . "'>";
         foreach ($this->kaarten as $key => $kaart) {
-            echo "<kaart onclick='window.location.href=`index.php?Kaart=" . $key . "`;'>";
-            if ($this->spelerNr == $id) {
+            echo '<kaart onclick="window.location.href=\'index.php?Kaart=' . $key . '\'">';
+            // Alleen voor de huidige speler zichtbaar
+            if ($this->spelerNr == $huidigeSpeler) {
                 $kaart->ShowKaart(true);
             } else {
-                $kaart->ShowKaart();
+                $kaart->ShowKaart(false); // achterkant tonen
             }
             echo "</kaart>";
         }
         echo "</hand>";
     }
+
     public function VerwijderVanHand($id)
     {
         // select kaart via $id 
@@ -148,6 +151,7 @@ class Gameleader
     private $beurt;
     private $LR;
     private $huidigTeken = null;
+    public $winner = null;
 
     function __construct($SpelersAantal)
     {
@@ -156,9 +160,10 @@ class Gameleader
         $this->Aflegstapel = new Aflegstapel();
         $this->Spelers = [];
         $this->beurt = null;
+        $this->LR = true;
         // aanmaken van de spelers 
         for ($i = 0; $i < $SpelersAantal; $i++) {
-            $this->Spelers[] = new Hand($i + 1);
+            $this->Spelers[] = new Hand($i);
         }
         // kaarten verdelen 
         $AantalKaartenPerSpeler = 7;
@@ -199,7 +204,7 @@ class Gameleader
     }
     private function speelKaart($kaartid)
     {
-        $this->winnen();
+
 
 
         if (
@@ -209,86 +214,106 @@ class Gameleader
             ->GetTeken() || ($this->Spelers[$this->beurt]->kaarten[$kaartid]->GetWaarde() == 'J')
         ) {
             $kaart = $this->Spelers[$this->beurt]
-                ->VerwijderenVanHand($kaartid);
+                ->VerwijderVanHand($kaartid);
 
             switch ($kaart->GetWaarde()) {
-                case '2';
+                case '2':
                     $this->VolgendeSpeler();
                     $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
                     $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
                     break;
-                
-                case '8';
+
+                case '8':
                     $this->VolgendeSpeler();
                     $this->VolgendeSpeler();
                     break;
 
-                case '10';
+                case '10':
                     $AantalSpelers = count($this->Spelers);
                     $doorgegevenKaarten = [];
 
-                    for ($i = 0; $i < $AantalSpelers; $i++){
+                    for ($i = 0; $i < $AantalSpelers; $i++) {
+                        if (count($this->Spelers[$i]->kaarten) > 0) {
+                            $rand = array_rand($this->Spelers[$i]->kaarten);
+                            $doorgegevenKaarten[$i] = $this->Spelers[$i]->VerwijderVanHand($rand);
+                        }
+                    }
+                    for ($i = 0; $i < $AantalSpelers; $i++) {
                         $volgende = ($i + 1) % $AantalSpelers;
-                        if(isset($doorgegevenKaarten[$i])) {
+                        if (isset($doorgegevenKaarten[$i])) {
                             $this->Spelers[$volgende]->ToevoegenAanHand($doorgegevenKaarten[$i]);
                         }
                     }
-                    $this->VolgendeSpeler();
-                    break;
-                
-                case 'J';
-                $this->huidigTeken = $kaart->GetTeken();
+
                     $this->VolgendeSpeler();
                     break;
 
-                case 'K';
-                   $speler = $this->Spelers[$this->beurt];
-                   $kanSpelen = false;
+                case 'J':
+                    $this->huidigTeken = $kaart->GetTeken();
+                    $this->VolgendeSpeler();
+                    break;
 
-                   foreach ($speler->kaarten as $key => $Kaarthand) {
-                    if ($Kaarthand->GetWaarde() == $kaart->GetWaarde() || $Kaarthand->GetTeken() == $kaart->GetTeken()){
-                        $kanSpelen = true;
-                        $this->speelKaart($key);
+                case 'K':
+                    $speler = $this->Spelers[$this->beurt];
+                    $kanSpelen = false;
+
+                    foreach ($speler->kaarten as $key => $Kaarthand) {
+                        if (
+                            $Kaarthand->GetWaarde() == $kaart->GetWaarde()
+                            || $Kaarthand->GetTeken() == $kaart->GetTeken()
+                        ) {
+
+                            $kanSpelen = true;
+                            $nextCardIndex = $key;
+                            break;
+                        }
                     }
-                   }
-                    break;
 
-                    if(!$kanSpelen){
+                    if ($kanSpelen) {
+                        $this->speelKaart($nextCardIndex);
+                    } else {
                         $speler->ToevoegenAanHand($this->Deck->Rapen());
                         $this->VolgendeSpeler();
                     }
-
-                case 'A';
-                   $this->LR = !$this->LR;
-                   $this->VolgendeSpeler();
-                    break;
-
-                case 'X';
-                   $this->VolgendeSpeler();
-                   for ($i = 0; $i < 5;$i++){
-                    $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
-                   }
-                   $this->VolgendeSpeler();
                     break;
 
 
-                default;
+
+                case 'A':
+                    $this->LR = !$this->LR;
+                    $this->VolgendeSpeler();
+                    break;
+
+                case 'X':
+                    $this->VolgendeSpeler();
+                    for ($i = 0; $i < 5; $i++) {
+                        $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
+                    }
+                    $this->VolgendeSpeler();
+                    break;
+
+
+                default:
                     $this->VolgendeSpeler();
                     break;
             }
             $this->Aflegstapel->PlaatKaart($kaart);
         }
-
-        
+        $this->winnen();
     }
 
     private function winnen()
     {
         $speler = $this->Spelers[$this->beurt];
+
+        if (count($speler->kaarten) == 0) {
+            $this->winner = $this->beurt;
+            return true; // geeft aan dat iemand gewonnen heeft
+        }
+
         if (count($speler->kaarten) == 1) {
-            $laatsteKaart = $speler->kaarten[0];
-            $waarde = $laatsteKaart->GetWaarde();
-            if (in_array($waarde, ['2', '8', '10', 'X'])) {
+            $laatste = $speler->kaarten[0];
+            if (in_array($laatste->GetWaarde(), ['2', '8', '10', 'X'])) {
                 $speler->ToevoegenAanHand($this->Deck->Rapen());
                 $speler->ToevoegenAanHand($this->Deck->Rapen());
             }
@@ -297,24 +322,34 @@ class Gameleader
 
     public function Klik($waarde)
     {
-if ($waarde == "pakken") {
-        $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
-        if (count($this->Deck->kaarten) < 3) {
-            $kaarten = $this->Aflegstapel->GeefAlleKaarten();
-            foreach ($kaarten as $kaart) {
-                array_push($this->Deck->kaarten, $kaart);
-            }
-            $this->Deck->Schudden();
+        if ($this->winner !== null) {
+            return; 
         }
-        $this->VolgendeSpeler();
-    } else {
-        $this->speelKaart($waarde);
+
+        if ($waarde == "pakken") {
+            $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
+            if (count($this->Deck->kaarten) < 3) {
+                $kaarten = $this->Aflegstapel->GeefAlleKaarten();
+                foreach ($kaarten as $kaart) {
+                    array_push($this->Deck->kaarten, $kaart);
+                }
+                $this->Deck->Schudden();
+            }
+            $this->VolgendeSpeler();
+        } else {
+            $this->speelKaart($waarde);
+        }
     }
-    }
+
     private function KaartPakken()
     {
         $kaart = $this->Deck->Rapen();
         $this->Spelers[$this->beurt]->ToevoegenAanHand($kaart);
+    }
+
+    public function GetBeurt()
+    {
+        return $this->beurt;
     }
 }
 
@@ -347,10 +382,18 @@ class Aflegstapel
     function ShowAflegstapel()
     {
         echo "<aflegstapel>";
-        foreach ($this->kaarten as $kaart) {
+        $teller = count($this->kaarten);
+        if ($teller > 0) {
+            // Alle kaarten behalve de laatste als achterkant
+            for ($i = 0; $i < $teller - 1; $i++) {
+                echo "<kaart>";
+                $this->kaarten[$i]->ShowKaart(false); // achterkant
+                echo "</kaart>";
+            }
+            // Bovenste kaart zichtbaar
             echo "<kaart>";
-            $kaart->ShowKaart();
-            echo "/kaart";
+            $this->kaarten[$teller - 1]->ShowKaart(true);
+            echo "</kaart>";
         }
         echo "</aflegstapel>";
     }
