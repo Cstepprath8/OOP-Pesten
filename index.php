@@ -1,6 +1,10 @@
 <?php
 // Colin Stepprath
 include 'Kaart.php';
+include 'Deck.php';
+include 'Hand.php';
+include 'Aflegstapel.php';
+include 'Gameleader.php';
 
 session_start();
 
