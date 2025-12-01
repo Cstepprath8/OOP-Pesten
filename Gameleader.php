@@ -30,7 +30,16 @@ class Gameleader
             }
         }
         // Kaart van het deck rapen en op de aflegstapel plaatsen 
-        $this->Aflegstapel->PlaatKaart($this->Deck->Rapen());
+        $eerste = $this->Deck->Rapen();
+
+        while ($eerste->GetWaarde() === 'X') {
+            // Joker terug in het deck stoppen en opnieuw schudden
+            array_push($this->Deck->kaarten, $eerste);
+            $this->Deck->Schudden();
+            $eerste = $this->Deck->Rapen();
+        }
+
+        $this->Aflegstapel->PlaatKaart($eerste);
 
         // Random beginnende speler kiezen   
         $this->beurt = rand(0, $SpelersAantal - 1);
@@ -68,23 +77,28 @@ class Gameleader
             empty($this->Aflegstapel->kaarten) || $this->Spelers[$this->beurt]
                 ->kaarten[$kaartid]->GetWaarde() == $this->Aflegstapel->kaarten[count($this->Aflegstapel->kaarten) - 1]
             ->GetWaarde() || $this->Spelers[$this->beurt]->kaarten[$kaartid]->GetTeken() == $this->Aflegstapel->kaarten[count($this->Aflegstapel->kaarten) - 1]
-            ->GetTeken() || ($this->Spelers[$this->beurt]->kaarten[$kaartid]->GetWaarde() == 'J')
+            ->GetTeken() || ($this->Spelers[$this->beurt]->kaarten[$kaartid]->GetWaarde() == 'J') || ($this->Spelers[$this->beurt]->kaarten[$kaartid]->GetWaarde() == 'X')
+            || ($this->Aflegstapel->kaarten[count($this->Aflegstapel->kaarten) - 1]->GetWaarde() == 'X')
+
+
         ) {
-            $kaart = $this->Spelers[$this->beurt]
-                ->VerwijderVanHand($kaartid);
+            $kaart = $this->Spelers[$this->beurt]->VerwijderVanHand($kaartid);
+            $this->Aflegstapel->PlaatKaart($kaart);
+            if ($this->checkWin($this->beurt)) return;
 
             switch ($kaart->GetWaarde()) {
+                //Volgende speler raapt 2 kaarten
                 case '2':
                     $this->VolgendeSpeler();
                     $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
                     $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
                     break;
-
+                //8 = Wacht beurt overslaan
                 case '8':
                     $this->VolgendeSpeler();
                     $this->VolgendeSpeler();
                     break;
-
+                //Iedereen geeft willekeurig 1 kaart af
                 case '10':
                     $AantalSpelers = count($this->Spelers);
                     $doorgegevenKaarten = [];
@@ -104,51 +118,58 @@ class Gameleader
 
                     $this->VolgendeSpeler();
                     break;
-
+                //kan altijd worden opgegooid en word vervolgens mee verder gespeelt
                 case 'J':
                     $this->huidigTeken = $kaart->GetTeken();
                     $this->VolgendeSpeler();
                     break;
 
+                //Joker volgende persoon raapt 5 kaarten maar mag wel keuze wat voor kaar thet word zoals: 'H', 'S', 'R', 'K'
+                case 'X':
+                    // Bepaal volgende speler die kaarten moet pakken
+                    $volgende = ($this->beurt + 1) % count($this->Spelers);
+
+                    // Volgende speler raapt 5 kaarten
+                    for ($i = 0; $i < 5; $i++) {
+                        $this->Spelers[$volgende]->ToevoegenAanHand($this->Deck->Rapen());
+                    }
+
+                    // Beurt voorbij: huidige speler is gedaan
+                    $this->VolgendeSpeler();
+                    break;
+
+
+
+
+
+                    break;
+                //je mag nog een kaart opgooien 
                 case 'K':
                     $speler = $this->Spelers[$this->beurt];
-                    $kanSpelen = false;
 
-                    foreach ($speler->kaarten as $key => $Kaarthand) {
-                        if (
-                            $Kaarthand->GetWaarde() == $kaart->GetWaarde()
-                            || $Kaarthand->GetTeken() == $kaart->GetTeken()
-                        ) {
-
-                            $kanSpelen = true;
+                    // Zoek een kaart die mag worden gespeeld (zelfde waarde of teken)
+                    $nextCardIndex = null;
+                    foreach ($speler->kaarten as $key => $k) {
+                        if ($k->GetWaarde() == $kaart->GetWaarde() || $k->GetTeken() == $kaart->GetTeken() || in_array($k->GetWaarde(), ['J', 'X'])) {
                             $nextCardIndex = $key;
                             break;
                         }
                     }
 
-                    if ($kanSpelen) {
+                    if ($nextCardIndex !== null) {
+                        // Speel de volgende kaart direct, beurt blijft bij dezelfde speler
                         $this->speelKaart($nextCardIndex);
                     } else {
+                        // Geen speelbare kaart → pak er één en ga naar de volgende speler
                         $speler->ToevoegenAanHand($this->Deck->Rapen());
                         $this->VolgendeSpeler();
                     }
                     break;
 
-
-
                 case 'A':
                     $this->LR = !$this->LR;
                     $this->VolgendeSpeler();
                     break;
-
-                case 'X':
-                    $this->VolgendeSpeler();
-                    for ($i = 0; $i < 5; $i++) {
-                        $this->Spelers[$this->beurt]->ToevoegenAanHand($this->Deck->Rapen());
-                    }
-                    $this->VolgendeSpeler();
-                    break;
-
 
                 default:
                     $this->VolgendeSpeler();
@@ -156,26 +177,29 @@ class Gameleader
             }
             $this->Aflegstapel->PlaatKaart($kaart);
         }
-        $this->winnen();
     }
-
-    private function winnen()
+    private function checkWin($spelerIndex)
     {
-        $speler = $this->Spelers[$this->beurt];
+        $speler = $this->Spelers[$spelerIndex];
 
         if (count($speler->kaarten) == 0) {
-            $this->winner = $this->beurt;
-            return true; // geeft aan dat iemand gewonnen heeft
+            $this->winner = $spelerIndex;
+            return true;
         }
 
+        // Laatste kaart speciale logica
         if (count($speler->kaarten) == 1) {
             $laatste = $speler->kaarten[0];
-            if (in_array($laatste->GetWaarde(), ['2', '8', '10', 'X'])) {
+            if (in_array($laatste->GetWaarde(), ['X'])) {
                 $speler->ToevoegenAanHand($this->Deck->Rapen());
                 $speler->ToevoegenAanHand($this->Deck->Rapen());
             }
         }
+
+
+        return false;
     }
+
 
     public function Klik($waarde)
     {
@@ -215,8 +239,7 @@ class Gameleader
         return (
             $kaart->GetWaarde() == $bovenste->GetWaarde() ||
             $kaart->GetTeken() == $bovenste->GetTeken() ||
-            $kaart->GetWaarde() == 'J'
-        );
+            ($kaart->GetWaarde() == 'J') || ($kaart->GetWaarde() == 'X'));
     }
 
     //Computer code:

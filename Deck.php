@@ -28,6 +28,10 @@ class Deck
                 $nr++;
             }
         }
+
+        $this->kaarten[] = new Kaart('X', 'X');
+        $this->kaarten[] = new Kaart('X', 'X');
+
     }
     //shows the deck
     public function ShowDeck()

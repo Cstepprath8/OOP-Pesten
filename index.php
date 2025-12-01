@@ -156,7 +156,7 @@ $beurt = $Game->GetBeurt();
         /* Spelersposities */
         hand.p0 {
             left: 42%;
-            bottom: 10px;
+            bottom: 30px;
             transform: translateX(-50%) rotate(0deg);
         }
 
@@ -168,7 +168,7 @@ $beurt = $Game->GetBeurt();
 
         hand.p2 {
             left: 58%;
-            top: 20px;
+            top: 30px;
             transform: rotate(180deg);
         }
 
